@@ -286,3 +286,5 @@ export const GeoZoneManager: React.FC = () => {
     </div>
   );
 };
+
+export default GeoZoneManager;
