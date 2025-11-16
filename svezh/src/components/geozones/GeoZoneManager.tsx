@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Polygon, Popup, useMap } from 'react-leaflet';
-import axios from 'axios';
+import api from '../../services/api';
 import L from 'leaflet';
 import '@geoman-io/leaflet-geoman-free';
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
 import 'leaflet/dist/leaflet.css';
-
-const API_URL = 'http://localhost:8083/api';
+import './GeoZoneManager.css';
 
 interface GeoZone {
   id: number;
@@ -26,7 +25,6 @@ const DrawControl: React.FC<{ onCreated: (coordinates: number[][]) => void }> = 
   const map = useMap();
 
   useEffect(() => {
-    // Настройка Geoman
     map.pm.addControls({
       position: 'topright',
       drawCircle: false,
@@ -41,7 +39,6 @@ const DrawControl: React.FC<{ onCreated: (coordinates: number[][]) => void }> = 
       removalMode: false,
     });
 
-    // Обработчик создания полигона
     map.on('pm:create', (e: any) => {
       const layer = e.layer;
       if (layer instanceof L.Polygon) {
@@ -50,7 +47,6 @@ const DrawControl: React.FC<{ onCreated: (coordinates: number[][]) => void }> = 
           latLng.lng
         ]);
         onCreated(coordinates);
-        // Удаляем нарисованный слой после сохранения
         map.removeLayer(layer);
       }
     });
@@ -68,6 +64,7 @@ export const GeoZoneManager: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [geoZones, setGeoZones] = useState<GeoZone[]>([]);
   const [zoneName, setZoneName] = useState('');
+  const [drawnCoordinates, setDrawnCoordinates] = useState<number[][] | null>(null);
   const [mapCenter] = useState<[number, number]>([43.2566, 76.9286]); // Алматы
 
   useEffect(() => {
@@ -77,15 +74,14 @@ export const GeoZoneManager: React.FC = () => {
   useEffect(() => {
     if (selectedClientId) {
       loadGeoZones(selectedClientId);
+    } else {
+      setGeoZones([]);
     }
   }, [selectedClientId]);
 
   const loadClients = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/admin/clients`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/admin/clients');
       setClients(response.data);
     } catch (error) {
       console.error('Error loading clients:', error);
@@ -94,195 +90,218 @@ export const GeoZoneManager: React.FC = () => {
 
   const loadGeoZones = async (clientId: number) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/geozones/client/${clientId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/geozones/client/${clientId}`);
       setGeoZones(response.data);
     } catch (error) {
       console.error('Error loading geozones:', error);
     }
   };
 
-  const handleCreated = async (coordinates: number[][]) => {
-    if (selectedClientId && zoneName) {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.post(
-          `${API_URL}/geozones`,
-          {
-            clientId: selectedClientId,
-            name: zoneName,
-            polygonCoordinates: coordinates
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
-
-        alert('Геозона успешно создана!');
-        setZoneName('');
-        loadGeoZones(selectedClientId);
-      } catch (error) {
-        console.error('Error creating geozone:', error);
-        alert('Ошибка при создании геозоны');
-      }
-    } else {
-      alert('Пожалуйста, выберите осужденного и введите название геозоны');
-    }
+  const handlePolygonDrawn = (coordinates: number[][]) => {
+    setDrawnCoordinates(coordinates);
   };
 
-  const handleDelete = async (geoZoneId: number) => {
-    if (window.confirm('Удалить эту геозону?')) {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.delete(`${API_URL}/geozones/${geoZoneId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        alert('Геозона удалена!');
-        if (selectedClientId) {
-          loadGeoZones(selectedClientId);
-        }
-      } catch (error) {
-        console.error('Error deleting geozone:', error);
-        alert('Ошибка при удалении геозоны');
-      }
+  const saveGeoZone = async () => {
+    if (!selectedClientId || !drawnCoordinates || !zoneName.trim()) {
+      alert('Пожалуйста, выберите осужденного, нарисуйте зону и введите название');
+      return;
     }
-  };
 
-  const toggleActive = async (geoZone: GeoZone) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(
-        `${API_URL}/geozones/${geoZone.id}`,
-        { isActive: !geoZone.isActive },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      await api.post('/geozones', {
+        clientId: selectedClientId,
+        name: zoneName,
+        polygonCoordinates: drawnCoordinates,
+        isActive: true
+      });
 
-      if (selectedClientId) {
-        loadGeoZones(selectedClientId);
-      }
+      setZoneName('');
+      setDrawnCoordinates(null);
+      loadGeoZones(selectedClientId);
+      alert('Геозона успешно создана!');
+    } catch (error: any) {
+      console.error('Error creating geozone:', error);
+      alert(`Ошибка: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
+  const toggleActive = async (zone: GeoZone) => {
+    try {
+      await api.put(`/geozones/${zone.id}`, {
+        ...zone,
+        isActive: !zone.isActive
+      });
+      loadGeoZones(selectedClientId!);
     } catch (error) {
       console.error('Error toggling geozone:', error);
+      alert('Ошибка при изменении статуса геозоны');
     }
   };
 
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>Управление геозонами</h1>
+  const handleDelete = async (zoneId: number) => {
+    if (!confirm('Вы уверены, что хотите удалить эту геозону?')) return;
 
-      <div style={{ marginBottom: '20px' }}>
-        <label>Выберите осужденного: </label>
-        <select
-          value={selectedClientId || ''}
-          onChange={(e) => setSelectedClientId(Number(e.target.value))}
-          style={{ marginLeft: '10px', padding: '5px' }}
-        >
-          <option value="">-- Выберите --</option>
-          {clients.map(client => (
-            <option key={client.id} value={client.id}>
-              {client.fio}
-            </option>
-          ))}
-        </select>
+    try {
+      await api.delete(`/geozones/${zoneId}`);
+      loadGeoZones(selectedClientId!);
+      alert('Геозона удалена');
+    } catch (error) {
+      console.error('Error deleting geozone:', error);
+      alert('Ошибка при удалении геозоны');
+    }
+  };
+
+  const selectedClient = clients.find(c => c.id === selectedClientId);
+
+  return (
+    <div className="geozone-manager">
+      <div className="geozone-header">
+        <h1>Управление геозонами</h1>
+        <p className="subtitle">Создавайте и управляйте зонами контроля для осужденных</p>
       </div>
 
-      {selectedClientId && (
-        <>
-          <div style={{ marginBottom: '20px' }}>
-            <input
-              type="text"
-              placeholder="Название геозоны"
-              value={zoneName}
-              onChange={(e) => setZoneName(e.target.value)}
-              style={{ padding: '5px', marginRight: '10px' }}
-            />
-            <small>Нарисуйте полигон на карте после ввода названия</small>
-          </div>
-
-          <div style={{ height: '500px', marginBottom: '20px' }}>
-            <MapContainer
-              center={mapCenter}
-              zoom={12}
-              style={{ height: '100%', width: '100%' }}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; OpenStreetMap contributors'
-              />
-
-              <DrawControl onCreated={handleCreated} />
-
-              {geoZones.map(zone => (
-                <Polygon
-                  key={zone.id}
-                  positions={zone.polygonCoordinates as any}
-                  pathOptions={{
-                    color: zone.isActive ? '#00ff00' : '#ff0000',
-                    weight: 2,
-                    fillOpacity: 0.2
-                  }}
-                >
-                  <Popup>
-                    <div>
-                      <h4>{zone.name}</h4>
-                      <p>Статус: {zone.isActive ? 'Активна' : 'Неактивна'}</p>
-                      <button onClick={() => toggleActive(zone)}>
-                        {zone.isActive ? 'Деактивировать' : 'Активировать'}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(zone.id)}
-                        style={{ marginLeft: '5px', background: '#ff0000', color: '#fff' }}
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  </Popup>
-                </Polygon>
-              ))}
-            </MapContainer>
-          </div>
-
-          <div>
-            <h3>Существующие геозоны</h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #ccc' }}>
-                  <th style={{ padding: '10px', textAlign: 'left' }}>Название</th>
-                  <th style={{ padding: '10px', textAlign: 'left' }}>Статус</th>
-                  <th style={{ padding: '10px', textAlign: 'left' }}>Действия</th>
-                </tr>
-              </thead>
-              <tbody>
-                {geoZones.map(zone => (
-                  <tr key={zone.id} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '10px' }}>{zone.name}</td>
-                    <td style={{ padding: '10px' }}>
-                      <span style={{ color: zone.isActive ? 'green' : 'red' }}>
-                        {zone.isActive ? 'Активна' : 'Неактивна'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px' }}>
-                      <button onClick={() => toggleActive(zone)}>
-                        {zone.isActive ? 'Деактивировать' : 'Активировать'}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(zone.id)}
-                        style={{ marginLeft: '5px' }}
-                      >
-                        Удалить
-                      </button>
-                    </td>
-                  </tr>
+      <div className="geozone-content">
+        <div className="control-panel">
+          <div className="panel-card">
+            <h2>Выбор осужденного</h2>
+            <div className="client-selector">
+              <select
+                value={selectedClientId || ''}
+                onChange={(e) => setSelectedClientId(Number(e.target.value) || null)}
+                className="styled-select"
+              >
+                <option value="">Выберите осужденного</option>
+                {clients.map(client => (
+                  <option key={client.id} value={client.id}>
+                    {client.fio}
+                  </option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </div>
+
+            {selectedClient && (
+              <div className="selected-client-info">
+                <div className="info-badge">
+                  <span className="badge-label">Выбран:</span>
+                  <span className="badge-value">{selectedClient.fio}</span>
+                </div>
+              </div>
+            )}
           </div>
-        </>
-      )}
+
+          {selectedClientId && (
+            <>
+              <div className="panel-card">
+                <h2>Создать геозону</h2>
+                <div className="create-zone-form">
+                  <div className="form-group">
+                    <label>Название зоны</label>
+                    <input
+                      type="text"
+                      value={zoneName}
+                      onChange={(e) => setZoneName(e.target.value)}
+                      placeholder="Например: Дом, Работа"
+                      className="styled-input"
+                    />
+                  </div>
+
+                  <div className="instructions">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                    </svg>
+                    <span>Нарисуйте полигон на карте, затем введите название и сохраните</span>
+                  </div>
+
+                  {drawnCoordinates && (
+                    <div className="success-message">
+                      ✓ Зона нарисована ({drawnCoordinates.length} точек)
+                    </div>
+                  )}
+
+                  <button
+                    onClick={saveGeoZone}
+                    disabled={!drawnCoordinates || !zoneName.trim()}
+                    className="btn-save"
+                  >
+                    Сохранить геозону
+                  </button>
+                </div>
+              </div>
+
+              <div className="panel-card">
+                <h2>Существующие зоны</h2>
+                {geoZones.length === 0 ? (
+                  <div className="empty-state">
+                    <p>Нет созданных геозон</p>
+                  </div>
+                ) : (
+                  <div className="zones-list">
+                    {geoZones.map(zone => (
+                      <div key={zone.id} className={`zone-item ${zone.isActive ? 'active' : 'inactive'}`}>
+                        <div className="zone-info">
+                          <h3>{zone.name}</h3>
+                          <span className={`status-badge ${zone.isActive ? 'active' : 'inactive'}`}>
+                            {zone.isActive ? 'Активна' : 'Неактивна'}
+                          </span>
+                        </div>
+                        <div className="zone-actions">
+                          <button
+                            onClick={() => toggleActive(zone)}
+                            className="btn-toggle"
+                          >
+                            {zone.isActive ? 'Деактивировать' : 'Активировать'}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(zone.id)}
+                            className="btn-delete"
+                          >
+                            Удалить
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="map-container-wrapper">
+          <MapContainer
+            center={mapCenter}
+            zoom={13}
+            style={{ height: '100%', width: '100%' }}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            />
+
+            {selectedClientId && <DrawControl onCreated={handlePolygonDrawn} />}
+
+            {geoZones.map(zone => (
+              <Polygon
+                key={zone.id}
+                positions={zone.polygonCoordinates.map(coord => [coord[0], coord[1]])}
+                pathOptions={{
+                  color: zone.isActive ? '#3b82f6' : '#9ca3af',
+                  fillColor: zone.isActive ? '#3b82f6' : '#9ca3af',
+                  fillOpacity: 0.2
+                }}
+              >
+                <Popup>
+                  <div className="popup-content">
+                    <strong>{zone.name}</strong>
+                    <p>Статус: {zone.isActive ? 'Активна' : 'Неактивна'}</p>
+                  </div>
+                </Popup>
+              </Polygon>
+            ))}
+          </MapContainer>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:8083/api';
+import api from '../../services/api';
+import './AdminPanel.css';
 
 interface District {
   id: number;
@@ -43,22 +42,23 @@ export const AdminPanel: React.FC = () => {
     password: '',
     uniqueId: '',
     role: 'inspector',
+    mruId: '',
     districtId: ''
   });
 
   useEffect(() => {
     loadDistricts();
     loadMrus();
-    loadEmployees();
-    loadClients();
-  }, []);
+    if (tab === 'employees') {
+      loadEmployees();
+    } else {
+      loadClients();
+    }
+  }, [tab]);
 
   const loadDistricts = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/admin/districts`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/admin/districts');
       setDistricts(response.data);
     } catch (error) {
       console.error('Error loading districts:', error);
@@ -67,10 +67,7 @@ export const AdminPanel: React.FC = () => {
 
   const loadMrus = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/admin/mrus`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/admin/mrus');
       setMrus(response.data);
     } catch (error) {
       console.error('Error loading MRUs:', error);
@@ -79,10 +76,7 @@ export const AdminPanel: React.FC = () => {
 
   const loadEmployees = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/admin/employees`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/admin/employees');
       setEmployees(response.data);
     } catch (error) {
       console.error('Error loading employees:', error);
@@ -91,194 +85,250 @@ export const AdminPanel: React.FC = () => {
 
   const loadClients = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/admin/clients`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/admin/clients');
       setClients(response.data);
     } catch (error) {
       console.error('Error loading clients:', error);
     }
   };
 
-  const createEmployee = async () => {
+  const createEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${API_URL}/admin/employees`,
-        newEmployee,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const payload: any = {
+        inn: newEmployee.inn,
+        password: newEmployee.password,
+        uniqueId: newEmployee.uniqueId,
+        role: newEmployee.role,
+        userType: 'employee'
+      };
 
-      alert('Сотрудник создан!');
+      // Логика в зависимости от роли
+      if (newEmployee.role === 'mruAdmin' && newEmployee.mruId) {
+        payload.mruId = newEmployee.mruId;
+      } else if (newEmployee.role === 'inspector' && newEmployee.districtId) {
+        payload.districtIds = [parseInt(newEmployee.districtId)];
+      }
+
+      await api.post('/admin/employees', payload);
       setNewEmployee({
         inn: '',
         password: '',
         uniqueId: '',
         role: 'inspector',
+        mruId: '',
         districtId: ''
       });
       loadEmployees();
+      alert('Сотрудник успешно создан!');
     } catch (error: any) {
       console.error('Error creating employee:', error);
-      alert(`Ошибка: ${error.response?.data?.error || error.message}`);
-    }
-  };
-
-  const deleteEmployee = async (employeeId: number) => {
-    if (window.confirm('Удалить сотрудника?')) {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.delete(`${API_URL}/admin/employees/${employeeId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        alert('Сотрудник удален!');
-        loadEmployees();
-      } catch (error) {
-        console.error('Error deleting employee:', error);
-        alert('Ошибка при удалении');
-      }
+      alert(`Ошибка: ${error.response?.data?.message || error.message}`);
     }
   };
 
   const transferClient = async (clientId: number, newDistrictId: string) => {
-    if (window.confirm('Перевести осужденного?')) {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.put(
-          `${API_URL}/admin/clients/${clientId}/transfer`,
-          { districtId: parseInt(newDistrictId) },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+    if (!newDistrictId) return;
+    try {
+      await api.put(`/admin/clients/${clientId}/transfer`, null, {
+        params: { newDistrictId: parseInt(newDistrictId) }
+      });
+      loadClients();
+      alert('Осужденный успешно переведен!');
+    } catch (error) {
+      console.error('Error transferring client:', error);
+      alert('Ошибка при переводе осужденного');
+    }
+  };
 
-        alert('Осужденный переведен!');
-        loadClients();
-      } catch (error) {
-        console.error('Error transferring client:', error);
-        alert('Ошибка при переводе');
-      }
+  const getRoleName = (role: string) => {
+    switch (role) {
+      case 'deptAdmin': return 'Администратор департамента';
+      case 'mruAdmin': return 'Администратор МРУ';
+      case 'inspector': return 'Инспектор';
+      default: return role;
     }
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Админ панель</h1>
-
-      <div style={{ marginBottom: '20px' }}>
-        <button onClick={() => setTab('employees')} style={{ marginRight: '10px' }}>
-          Сотрудники
-        </button>
-        <button onClick={() => setTab('clients')}>
-          Осужденные
-        </button>
+    <div className="admin-panel">
+      <div className="admin-header">
+        <h1>Администрирование</h1>
+        <div className="tab-buttons">
+          <button
+            className={tab === 'employees' ? 'active' : ''}
+            onClick={() => setTab('employees')}
+          >
+            Сотрудники
+          </button>
+          <button
+            className={tab === 'clients' ? 'active' : ''}
+            onClick={() => setTab('clients')}
+          >
+            Осужденные
+          </button>
+        </div>
       </div>
 
-      {tab === 'employees' && (
-        <div>
-          <h2>Управление сотрудниками</h2>
+      {tab === 'employees' ? (
+        <div className="employees-section">
+          <div className="create-employee-card">
+            <h2>Добавить сотрудника</h2>
+            <form onSubmit={createEmployee} className="employee-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>ИНН (логин)</label>
+                  <input
+                    type="text"
+                    value={newEmployee.inn}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, inn: e.target.value })}
+                    placeholder="Введите ИНН"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Пароль</label>
+                  <input
+                    type="password"
+                    value={newEmployee.password}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })}
+                    placeholder="Введите пароль"
+                    required
+                  />
+                </div>
+              </div>
 
-          <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ccc' }}>
-            <h3>Добавить нового сотрудника</h3>
-            <div style={{ display: 'grid', gap: '10px' }}>
-              <input
-                type="text"
-                placeholder="ИНН"
-                value={newEmployee.inn}
-                onChange={(e) => setNewEmployee({ ...newEmployee, inn: e.target.value })}
-              />
-              <input
-                type="password"
-                placeholder="Пароль"
-                value={newEmployee.password}
-                onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })}
-              />
-              <input
-                type="text"
-                placeholder="Unique ID"
-                value={newEmployee.uniqueId}
-                onChange={(e) => setNewEmployee({ ...newEmployee, uniqueId: e.target.value })}
-              />
-              <select
-                value={newEmployee.role}
-                onChange={(e) => setNewEmployee({ ...newEmployee, role: e.target.value })}
-              >
-                <option value="inspector">Инспектор</option>
-                <option value="mruAdmin">МРУ Админ</option>
-                <option value="deptAdmin">Департамент Админ</option>
-              </select>
-              <select
-                value={newEmployee.districtId}
-                onChange={(e) => setNewEmployee({ ...newEmployee, districtId: e.target.value })}
-              >
-                <option value="">Выберите район</option>
-                {districts.map(d => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-              <button onClick={createEmployee}>Создать</button>
-            </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Уникальный ID</label>
+                  <input
+                    type="text"
+                    value={newEmployee.uniqueId}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, uniqueId: e.target.value })}
+                    placeholder="Уникальный идентификатор"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Роль</label>
+                  <select
+                    value={newEmployee.role}
+                    onChange={(e) => setNewEmployee({
+                      ...newEmployee,
+                      role: e.target.value,
+                      mruId: '',
+                      districtId: ''
+                    })}
+                  >
+                    <option value="deptAdmin">Администратор департамента</option>
+                    <option value="mruAdmin">Администратор МРУ</option>
+                    <option value="inspector">Инспектор</option>
+                  </select>
+                </div>
+              </div>
+
+              {newEmployee.role === 'mruAdmin' && (
+                <div className="form-group">
+                  <label>МРУ</label>
+                  <select
+                    value={newEmployee.mruId}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, mruId: e.target.value })}
+                    required
+                  >
+                    <option value="">Выберите МРУ</option>
+                    {mrus.map(mru => (
+                      <option key={mru.id} value={mru.id}>{mru.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {newEmployee.role === 'inspector' && (
+                <div className="form-group">
+                  <label>Район</label>
+                  <select
+                    value={newEmployee.districtId}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, districtId: e.target.value })}
+                    required
+                  >
+                    <option value="">Выберите район</option>
+                    {districts.map(district => (
+                      <option key={district.id} value={district.id}>{district.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <button type="submit" className="btn-primary">
+                Создать сотрудника
+              </button>
+            </form>
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #ccc' }}>
-                <th style={{ padding: '10px', textAlign: 'left' }}>ИНН</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>Unique ID</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>Роль</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map(emp => (
-                <tr key={emp.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '10px' }}>{emp.inn}</td>
-                  <td style={{ padding: '10px' }}>{emp.uniqueId}</td>
-                  <td style={{ padding: '10px' }}>{emp.attributes?.role || 'N/A'}</td>
-                  <td style={{ padding: '10px' }}>
-                    <button onClick={() => deleteEmployee(emp.id)}>Удалить</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="employees-list-card">
+            <h2>Список сотрудников</h2>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>ИНН</th>
+                    <th>Unique ID</th>
+                    <th>Роль</th>
+                    <th>МРУ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map(emp => (
+                    <tr key={emp.id}>
+                      <td>{emp.inn}</td>
+                      <td>{emp.uniqueId}</td>
+                      <td>{getRoleName(emp.attributes?.role || 'inspector')}</td>
+                      <td>{emp.mruId || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      )}
-
-      {tab === 'clients' && (
-        <div>
-          <h2>Управление осужденными</h2>
-
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #ccc' }}>
-                <th style={{ padding: '10px', textAlign: 'left' }}>ФИО</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>ИНН</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>Район</th>
-                <th style={{ padding: '10px', textAlign: 'left' }}>Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {clients.map(client => (
-                <tr key={client.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '10px' }}>{client.fio}</td>
-                  <td style={{ padding: '10px' }}>{client.inn || 'N/A'}</td>
-                  <td style={{ padding: '10px' }}>{client.district?.name || 'Не назначен'}</td>
-                  <td style={{ padding: '10px' }}>
-                    <select
-                      onChange={(e) => transferClient(client.id, e.target.value)}
-                      defaultValue=""
-                    >
-                      <option value="">Перевести в...</option>
-                      {districts.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      ) : (
+        <div className="clients-section">
+          <div className="clients-list-card">
+            <h2>Список осужденных</h2>
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>ФИО</th>
+                    <th>ИНН</th>
+                    <th>Район</th>
+                    <th>Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map(client => (
+                    <tr key={client.id}>
+                      <td>{client.fio}</td>
+                      <td>{client.inn || '-'}</td>
+                      <td>{client.district?.name || '-'}</td>
+                      <td>
+                        <select
+                          className="transfer-select"
+                          onChange={(e) => transferClient(client.id, e.target.value)}
+                          defaultValue=""
+                        >
+                          <option value="">Перевести в...</option>
+                          {districts.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
     </div>
