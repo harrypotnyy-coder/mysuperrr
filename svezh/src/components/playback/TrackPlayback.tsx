@@ -42,6 +42,7 @@ const TrackPlayback: React.FC = () => {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [mapCenter] = useState<[number, number]>([42.8746, 74.5698]); // Бишкек
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -145,9 +146,9 @@ const TrackPlayback: React.FC = () => {
 
   const currentPosition = positions[currentIndex];
   const trackLine = positions.slice(0, currentIndex + 1).map(p => [p.latitude, p.longitude] as [number, number]);
-  const mapCenter: [number, number] = currentPosition
+  const displayCenter: [number, number] = currentPosition
     ? [currentPosition.latitude, currentPosition.longitude]
-    : [43.2566, 76.9286];
+    : mapCenter;
 
   // Создаем кастомную иконку для текущей позиции
   const currentIcon = new L.Icon({
@@ -308,7 +309,7 @@ const TrackPlayback: React.FC = () => {
 
         <div className="map-container">
           <MapContainer
-            center={mapCenter}
+            center={displayCenter}
             zoom={15}
             style={{ height: '100%', width: '100%' }}
           >

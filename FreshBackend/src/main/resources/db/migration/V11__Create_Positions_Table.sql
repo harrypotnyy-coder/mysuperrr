@@ -15,12 +15,12 @@ CREATE TABLE positions (
 CREATE INDEX idx_positions_client_timestamp ON positions(client_id, timestamp);
 
 -- Добавляем тестовые точки GPS для демонстрации воспроизведения
--- Симулируем маршрут от дома до работы в течение 30 минут
+-- Симулируем маршрут от дома до работы в Бишкеке в течение 30 минут
 INSERT INTO positions (client_id, latitude, longitude, speed, accuracy, timestamp)
 SELECT
     c.id,
-    43.2566 + (seq * 0.001), -- Движение на север
-    76.9286 + (seq * 0.0015), -- Движение на восток
+    42.8746 + (seq * 0.001), -- Движение на север (Бишкек)
+    74.5698 + (seq * 0.0015), -- Движение на восток (Бишкек)
     CASE
         WHEN seq < 5 THEN 0 -- Стоит
         WHEN seq < 25 THEN 20 + RANDOM() * 10 -- Едет

@@ -65,7 +65,7 @@ export const GeoZoneManager: React.FC = () => {
   const [geoZones, setGeoZones] = useState<GeoZone[]>([]);
   const [zoneName, setZoneName] = useState('');
   const [drawnCoordinates, setDrawnCoordinates] = useState<number[][] | null>(null);
-  const [mapCenter] = useState<[number, number]>([43.2566, 76.9286]); // Алматы
+  const [mapCenter] = useState<[number, number]>([42.8746, 74.5698]); // Бишкек
 
   useEffect(() => {
     loadClients();
