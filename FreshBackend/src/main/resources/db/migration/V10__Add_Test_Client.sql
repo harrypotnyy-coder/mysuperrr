@@ -8,28 +8,40 @@ DELETE FROM clients WHERE id > 0;
 INSERT INTO clients (
     inn,
     fio,
-    unique_id,
-    address,
-    district_id,
+    identifier,
+    reg_address,
+    fact_address,
+    app_password,
+    birth_date,
+    sex,
+    passport,
+    contact1,
+    obs_start,
+    obs_end,
     created_at,
     updated_at
 )
-SELECT
+VALUES (
     '1234567890123',
     'Иванов Иван Иванович',
     'test_client_001',
-    'г. Алматы, ул. Абая 150',
-    d.id,
+    'г. Бишкек, ул. Чуй 150',
+    'г. Бишкек, ул. Чуй 150',
+    'password123',
+    '1990-01-15',
+    'М',
+    'AN1234567',
+    '+996555123456',
+    '2024-01-01',
+    '2025-12-31',
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-FROM districts d
-WHERE d.code = 'DIST001'
-LIMIT 1;
+);
 
 -- Информационное сообщение
 DO $$
 BEGIN
     RAISE NOTICE 'Тестовый осужденный добавлен: Иванов Иван Иванович';
     RAISE NOTICE 'ИНН: 1234567890123';
-    RAISE NOTICE 'Unique ID: test_client_001';
+    RAISE NOTICE 'Identifier: test_client_001';
 END $$;
