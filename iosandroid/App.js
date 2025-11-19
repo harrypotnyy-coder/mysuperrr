@@ -1,4 +1,5 @@
 // App.js
+import 'react-native-gesture-handler';
 import { registerRootComponent } from 'expo';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
