@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
-import * as NetInfo from '@react-native-community/netinfo';
+// import * as NetInfo from '@react-native-community/netinfo'; // Временно отключено - пакет не установлен
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { TRACCAR_CONFIG } from '../utils/constants';
@@ -21,7 +21,12 @@ class GPSService {
 
   // Настройка слушателя сети
   setupNetworkListener() {
-    NetInfo.addEventListener(state => {
+    // Временно отключено - NetInfo не установлен
+    // Предполагаем что всегда онлайн
+    this.isOnline = true;
+    console.log('Network listener disabled - assuming always online');
+
+    /* NetInfo.addEventListener(state => {
       const wasOffline = !this.isOnline;
       this.isOnline = state.isConnected;
 
@@ -32,7 +37,7 @@ class GPSService {
         console.log('Network restored, syncing offline data...');
         this.syncOfflineData();
       }
-    });
+    }); */
   }
 
   // Определяем фоновую задачу

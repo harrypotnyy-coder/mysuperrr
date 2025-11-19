@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import messaging from '@react-native-firebase/messaging';
+// import messaging from '@react-native-firebase/messaging'; // Временно отключено - пакет не установлен
 import { Alert } from 'react-native';
 import { faceCheckAPI } from '../services/api';
 import { useAuth } from '../store/authContext';
@@ -8,11 +8,13 @@ const NotificationHandler = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    requestUserPermission();
-    setupNotificationListeners();
+    // Временно отключено - Firebase messaging не установлен
+    console.log('NotificationHandler: Firebase notifications disabled');
+    // requestUserPermission();
+    // setupNotificationListeners();
   }, []);
 
-  const requestUserPermission = async () => {
+  /* const requestUserPermission = async () => {
     const authStatus = await messaging().requestPermission();
     const enabled =
       authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
@@ -28,7 +30,7 @@ const NotificationHandler = () => {
     try {
       const token = await messaging().getToken();
       console.log('FCM Token:', token);
-      
+
       // Регистрируем токен на бэкенде
       if (user) {
         await faceCheckAPI.registerFCMToken(user.name, token);
@@ -60,7 +62,7 @@ const NotificationHandler = () => {
     messaging().setBackgroundMessageHandler(async remoteMessage => {
       console.log('Background notification:', remoteMessage);
     });
-  };
+  }; */
 
   return null;
 };

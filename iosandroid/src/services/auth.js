@@ -1,6 +1,6 @@
 import { authAPI, faceCheckAPI } from './api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import messaging from '@react-native-firebase/messaging';
+// import messaging from '@react-native-firebase/messaging'; // Временно отключено - пакет не установлен
 
 class AuthService {
   // Сохранение токена
@@ -52,7 +52,11 @@ class AuthService {
 
   // Регистрация FCM токена для пользователя
   async registerFCMToken(userUniqueId) {
-    try {
+    // Временно отключено - Firebase messaging не установлен
+    console.log('FCM token registration skipped - Firebase not configured');
+    return null;
+
+    /* try {
       // Запрашиваем разрешение на уведомления
       const authStatus = await messaging().requestPermission();
       const enabled =
@@ -61,29 +65,33 @@ class AuthService {
 
       if (enabled) {
         const fcmToken = await messaging().getToken();
-        
+
         // Регистрируем токен на бэкенде
         await faceCheckAPI.registerFCMToken(userUniqueId, fcmToken);
-        
+
         console.log('FCM token registered:', fcmToken);
         return fcmToken;
       }
     } catch (error) {
       console.log('FCM registration error:', error);
     }
-    return null;
+    return null; */
   }
 
   // Обновление FCM токена (при изменении)
   async refreshFCMToken(userUniqueId) {
-    try {
+    // Временно отключено - Firebase messaging не установлен
+    console.log('FCM token refresh skipped - Firebase not configured');
+    return null;
+
+    /* try {
       const fcmToken = await messaging().getToken();
       await faceCheckAPI.registerFCMToken(userUniqueId, fcmToken);
       return fcmToken;
     } catch (error) {
       console.log('FCM token refresh error:', error);
       return null;
-    }
+    } */
   }
 
   // Получение информации о сессии
