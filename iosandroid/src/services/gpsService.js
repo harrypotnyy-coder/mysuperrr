@@ -143,19 +143,19 @@ class GPSService {
         altitude: location.coords.altitude || 0,
         accuracy: location.coords.accuracy || 0,
         batt: 85,
-        timestamp: new Date(location.timestamp).getTime(),
-        attributes: {
-          provider: 'mobile',
-          batteryLevel: 85,
-          activity: 'moving',
-        }
+        timestamp: Math.floor(new Date(location.timestamp).getTime() / 1000), // Unix timestamp в секундах
       };
 
-      console.log('Sending location to Traccar via Nginx:', positionData);
+      console.log('📍 GPS Data:', {
+        lat: positionData.lat,
+        lon: positionData.lon,
+        id: positionData.id,
+        timestamp: new Date(positionData.timestamp * 1000).toLocaleString()
+      });
 
       // Проверяем наличие сети
       if (this.isOnline) {
-        // Отправляем через Nginx на порт 80
+        // Отправляем через Spring Boot на Traccar
         const success = await this.sendToTraccarServer(positionData);
 
         if (!success) {
@@ -282,29 +282,43 @@ class GPSService {
   // Отправка через Spring Boot бэкенд и Traccar
   async sendViaSpringBoot(positionData) {
     try {
-      // Отправляем напрямую в Traccar на порт 8082
       // Используем протокол OsmAnd для Traccar
-      const traccarUrl = `https://unprescribed-barefootedly-jenni.ngrok-free.dev/?id=${positionData.id}&lat=${positionData.lat}&lon=${positionData.lon}&timestamp=${positionData.timestamp}&speed=${positionData.speed}&bearing=${positionData.bearing}&altitude=${positionData.altitude}&accuracy=${positionData.accuracy}`;
+      // Формат: /?id=xxx&lat=xxx&lon=xxx&timestamp=xxx&...
+      const params = new URLSearchParams({
+        id: positionData.id,
+        lat: positionData.lat,
+        lon: positionData.lon,
+        timestamp: positionData.timestamp,
+        speed: positionData.speed || 0,
+        bearing: positionData.bearing || 0,
+        altitude: positionData.altitude || 0,
+        accuracy: positionData.accuracy || 0,
+        batt: positionData.batt || 85,
+      });
 
-      console.log('Sending to Traccar:', traccarUrl);
+      const traccarUrl = `https://unprescribed-barefootedly-jenni.ngrok-free.dev/?${params.toString()}`;
+
+      console.log('🚀 Sending to Traccar (OsmAnd):', traccarUrl);
 
       const response = await fetch(traccarUrl, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
+          'Accept': '*/*',
         },
       });
 
-      if (!response.ok) {
-        console.log(`Traccar response status: ${response.status}`);
+      console.log('📡 Traccar response:', response.status, response.statusText);
+
+      if (response.ok || response.status === 200) {
+        console.log('✅ Location sent to Traccar successfully');
+        return true;
+      } else {
+        console.log('⚠️ Traccar response not OK:', response.status);
         // Пробуем альтернативный метод - через Spring Boot API
         return await this.sendViaSpringBootAPI(positionData);
       }
-
-      console.log('Location sent to Traccar successfully');
-      return true;
     } catch (error) {
-      console.log('Traccar send error:', error);
+      console.log('❌ Traccar send error:', error.message);
       // Пробуем альтернативный метод
       return await this.sendViaSpringBootAPI(positionData);
     }
