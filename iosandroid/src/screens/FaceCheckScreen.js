@@ -7,28 +7,25 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Camera } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { faceCheckAPI } from '../services/api';
 import { useAuth } from '../store/authContext';
+import CameraScreen from './CameraScreen';
 
 const FaceCheckScreen = () => {
   const [loading, setLoading] = useState(false);
-  const [hasPermission, setHasPermission] = useState(null);
   const [cameraVisible, setCameraVisible] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
   const { user } = useAuth();
 
-  const requestCameraPermission = async () => {
-    const { status } = await Camera.requestCameraPermissionsAsync();
-    setHasPermission(status === 'granted');
-    return status === 'granted';
-  };
-
   const takePhoto = async () => {
-    const hasPermission = await requestCameraPermission();
-    if (!hasPermission) {
-      Alert.alert('Ошибка', 'Необходим доступ к камере');
-      return;
+    if (!permission?.granted) {
+      const result = await requestPermission();
+      if (!result.granted) {
+        Alert.alert('Ошибка', 'Необходим доступ к камере');
+        return;
+      }
     }
 
     setCameraVisible(true);
@@ -112,37 +109,6 @@ const FaceCheckScreen = () => {
   );
 };
 
-// Компонент камеры
-const CameraScreen = ({ onPhotoTaken, onCancel }) => {
-  const [cameraRef, setCameraRef] = useState(null);
-
-  const takePicture = async () => {
-    if (cameraRef) {
-      const photo = await cameraRef.takePictureAsync();
-      onPhotoTaken(photo);
-    }
-  };
-
-  return (
-    <View style={styles.cameraContainer}>
-      <Camera
-        style={styles.camera}
-        type={Camera.Constants.Type.front}
-        ref={ref => setCameraRef(ref)}
-      >
-        <View style={styles.cameraControls}>
-          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-            <Text style={styles.cancelButtonText}>×</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
-            <View style={styles.captureButtonInner} />
-          </TouchableOpacity>
-        </View>
-      </Camera>
-    </View>
-  );
-};
 
 const styles = StyleSheet.create({
   container: {
@@ -184,48 +150,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-  },
-  cameraContainer: {
-    flex: 1,
-  },
-  camera: {
-    flex: 1,
-  },
-  cameraControls: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    padding: 20,
-  },
-  cancelButton: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: 'white',
-    fontSize: 30,
-    lineHeight: 30,
-  },
-  captureButton: {
-    borderWidth: 4,
-    borderColor: 'white',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  captureButtonInner: {
-    backgroundColor: 'white',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
   },
 });
 

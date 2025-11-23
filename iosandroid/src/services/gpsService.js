@@ -279,27 +279,57 @@ class GPSService {
     }
   }
 
-  // Отправка через Spring Boot бэкенд
+  // Отправка через Spring Boot бэкенд и Traccar
   async sendViaSpringBoot(positionData) {
     try {
-      const API_BASE_URL = 'http://85.113.27.42:80/api';
+      // Отправляем напрямую в Traccar на порт 8082
+      // Используем протокол OsmAnd для Traccar
+      const traccarUrl = `https://unprescribed-barefootedly-jenni.ngrok-free.dev/?id=${positionData.id}&lat=${positionData.lat}&lon=${positionData.lon}&timestamp=${positionData.timestamp}&speed=${positionData.speed}&bearing=${positionData.bearing}&altitude=${positionData.altitude}&accuracy=${positionData.accuracy}`;
+
+      console.log('Sending to Traccar:', traccarUrl);
+
+      const response = await fetch(traccarUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.log(`Traccar response status: ${response.status}`);
+        // Пробуем альтернативный метод - через Spring Boot API
+        return await this.sendViaSpringBootAPI(positionData);
+      }
+
+      console.log('Location sent to Traccar successfully');
+      return true;
+    } catch (error) {
+      console.log('Traccar send error:', error);
+      // Пробуем альтернативный метод
+      return await this.sendViaSpringBootAPI(positionData);
+    }
+  }
+
+  // Альтернативный метод - через Spring Boot API
+  async sendViaSpringBootAPI(positionData) {
+    try {
+      const API_BASE_URL = 'https://unprescribed-barefootedly-jenni.ngrok-free.dev/api';
       const response = await fetch(`${API_BASE_URL}/traccar/positions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(positionData),
-        timeout: 10000, // 10 секунд таймаут
       });
 
       if (!response.ok) {
         throw new Error(`Spring Boot error! status: ${response.status}`);
       }
 
-      console.log('Location sent via Spring Boot successfully');
+      console.log('Location sent via Spring Boot API successfully');
       return true;
     } catch (error) {
-      console.log('Spring Boot send error:', error);
+      console.log('Spring Boot API send error:', error);
       return false;
     }
   }

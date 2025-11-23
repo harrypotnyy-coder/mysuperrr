@@ -7,24 +7,20 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Camera } from 'expo-camera';
-import * as FileSystem from 'expo-file-system';
+import { CameraView } from 'expo-camera';
 
 const CameraScreen = ({ onPhotoTaken, onCancel, mode = 'front' }) => {
-  const [cameraRef, setCameraRef] = useState(null);
+  const cameraRef = useRef(null);
   const [loading, setLoading] = useState(false);
-  const [cameraType, setCameraType] = useState(
-    mode === 'front' ? Camera.Constants.Type.front : Camera.Constants.Type.back
-  );
+  const [facing, setFacing] = useState(mode);
 
   const takePicture = async () => {
-    if (!cameraRef) return;
+    if (!cameraRef.current) return;
 
     setLoading(true);
     try {
-      const photo = await cameraRef.takePictureAsync({
+      const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
-        exif: true,
       });
 
       // Конвертируем фото в нужный формат
@@ -44,11 +40,7 @@ const CameraScreen = ({ onPhotoTaken, onCancel, mode = 'front' }) => {
   };
 
   const switchCamera = () => {
-    setCameraType(
-      cameraType === Camera.Constants.Type.back
-        ? Camera.Constants.Type.front
-        : Camera.Constants.Type.back
-    );
+    setFacing(facing === 'back' ? 'front' : 'back');
   };
 
   if (loading) {
@@ -62,10 +54,10 @@ const CameraScreen = ({ onPhotoTaken, onCancel, mode = 'front' }) => {
 
   return (
     <View style={styles.container}>
-      <Camera
+      <CameraView
         style={styles.camera}
-        type={cameraType}
-        ref={ref => setCameraRef(ref)}
+        facing={facing}
+        ref={cameraRef}
       >
         <View style={styles.overlay}>
           {/* Рамка для лица */}
@@ -75,7 +67,7 @@ const CameraScreen = ({ onPhotoTaken, onCancel, mode = 'front' }) => {
             <View style={styles.frameCornerBottomLeft} />
             <View style={styles.frameCornerBottomRight} />
           </View>
-          
+
           <Text style={styles.instruction}>
             Расположите лицо в рамке
           </Text>
@@ -86,8 +78,8 @@ const CameraScreen = ({ onPhotoTaken, onCancel, mode = 'front' }) => {
             <Text style={styles.controlButtonText}>✕</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.captureButton} 
+          <TouchableOpacity
+            style={styles.captureButton}
             onPress={takePicture}
             disabled={loading}
           >
@@ -98,7 +90,7 @@ const CameraScreen = ({ onPhotoTaken, onCancel, mode = 'front' }) => {
             <Text style={styles.controlButtonText}>🔄</Text>
           </TouchableOpacity>
         </View>
-      </Camera>
+      </CameraView>
     </View>
   );
 };
