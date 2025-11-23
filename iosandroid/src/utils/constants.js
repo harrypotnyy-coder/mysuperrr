@@ -8,10 +8,20 @@ export const API_CONFIG = {
 
 // URL для Traccar GPS данных
 export const TRACCAR_CONFIG = {
-  // Для GPS данных используем основной URL без /traccar/ пути
-  GPS_ENDPOINT: 'http://your-domain.com', // Порт 80 через Nginx
-  // Для API запросов к Traccar
-  API_ENDPOINT: 'http://your-domain.com/traccar/api',
+  // Для GPS данных через Traccar на порту 8082
+  GPS_ENDPOINT: 'https://unprescribed-barefootedly-jenni.ngrok-free.dev',
+  API_ENDPOINT: 'https://unprescribed-barefootedly-jenni.ngrok-free.dev/api/traccar',
+  TRACCAR_PORT: 8082,
+};
+
+// CompreFace настройки
+export const COMPREFACE_CONFIG = {
+  BASE_URL: 'https://unprescribed-barefootedly-jenni.ngrok-free.dev/compreface',
+  API_KEY: 'your-api-key-here', // Замените на ваш API ключ
+  RECOGNITION_ENDPOINT: '/api/v1/recognition/recognize',
+  VERIFY_ENDPOINT: '/api/v1/recognition/verify',
+  ADD_FACE_ENDPOINT: '/api/v1/recognition/faces',
+  SIMILARITY_THRESHOLD: 0.7, // 70% схожесть для успеха
 };
 
 // Коды ошибок
