@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { authAPI } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { normalizeUserData } from '../utils/helpers';
 
 const AuthContext = createContext();
 
@@ -43,7 +44,10 @@ export const AuthProvider = ({ children }) => {
         }
         console.log('═══════════════════════════════════════════');
 
-        setUser(response.data.user);
+        // ✅ ИСПРАВЛЕНИЕ: Нормализуем данные перед setUser (строки → boolean)
+        const normalizedUser = normalizeUserData(response.data.user);
+        console.log('🔧 NORMALIZED USER:', JSON.stringify(normalizedUser, null, 2));
+        setUser(normalizedUser);
       }
     } catch (error) {
       console.log('Auth check failed:', error);
@@ -72,9 +76,13 @@ export const AuthProvider = ({ children }) => {
       }
       console.log('═══════════════════════════════════════════');
 
+      // ✅ ИСПРАВЛЕНИЕ: Нормализуем данные перед setUser (строки → boolean)
+      const normalizedUser = normalizeUserData(userData);
+      console.log('🔧 NORMALIZED USER (login):', JSON.stringify(normalizedUser, null, 2));
+
       await AsyncStorage.setItem('authToken', newToken);
       setToken(newToken);
-      setUser(userData);
+      setUser(normalizedUser);
 
       return { success: true };
     } catch (error) {
