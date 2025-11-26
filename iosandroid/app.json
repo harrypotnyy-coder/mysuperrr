@@ -16,8 +16,9 @@
       "infoPlist": {
         "NSCameraUsageDescription": "This app uses the camera for Face-ID verification",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photos for Face-ID verification",
-        "NSLocationWhenInUseUsageDescription": "This app needs access to your location for tracking",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location for tracking"
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location for tracking probationers",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs continuous access to your location for tracking probationers",
+        "NSLocationAlwaysUsageDescription": "This app needs background location access for continuous tracking of probationers"
       }
     },
     "android": {
