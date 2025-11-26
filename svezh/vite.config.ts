@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0', // Используем IPv4 вместо IPv6 (решает проблему EACCES на Windows)
     port: 3000,
     proxy: {
       '/api': {
