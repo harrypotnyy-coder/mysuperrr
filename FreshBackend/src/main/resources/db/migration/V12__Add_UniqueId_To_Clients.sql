@@ -9,10 +9,20 @@ UPDATE clients SET unique_id = inn WHERE unique_id IS NULL;
 
 -- Делаем unique_id обязательным и уникальным
 ALTER TABLE clients ALTER COLUMN unique_id SET NOT NULL;
-ALTER TABLE clients ADD CONSTRAINT clients_unique_id_unique UNIQUE (unique_id);
 
--- Создаем индекс для быстрого поиска
-CREATE INDEX idx_clients_unique_id ON clients (unique_id);
+-- Добавляем constraint только если не существует
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'clients_unique_id_unique'
+    ) THEN
+        ALTER TABLE clients ADD CONSTRAINT clients_unique_id_unique UNIQUE (unique_id);
+    END IF;
+END $$;
+
+-- Создаем индекс для быстрого поиска (IF NOT EXISTS)
+CREATE INDEX IF NOT EXISTS idx_clients_unique_id ON clients (unique_id);
 
 -- Информационное сообщение
 DO $$
