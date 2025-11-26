@@ -64,4 +64,20 @@ class DeviceController(
             return ResponseEntity.status(e.statusCode.value()).body(mapOf("error" to e.message))
         }
     }
+
+    // Метод для поиска устройства по uniqueId через path parameter
+    // Для поддержки endpoint /api/devices/by-unique-id/{uniqueId}
+    @GetMapping("/by-unique-id/{uniqueId}")
+    fun getDeviceByUniqueIdPath(@PathVariable uniqueId: String): ResponseEntity<*> {
+        try {
+            val device = traccarService.getDeviceByUniqueId(uniqueId)
+            return if (device != null) {
+                ResponseEntity.ok(device) // Возвращаем объект напрямую
+            } else {
+                ResponseEntity.status(404).body(mapOf("error" to "Device not found with uniqueId: $uniqueId"))
+            }
+        } catch (e: WebClientResponseException) {
+            return ResponseEntity.status(e.statusCode.value()).body(mapOf("error" to e.message))
+        }
+    }
 }
