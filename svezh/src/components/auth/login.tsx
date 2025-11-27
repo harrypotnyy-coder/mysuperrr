@@ -55,17 +55,19 @@ const Login: React.FC = () => {
               type="text"
               value={login}
               onChange={(e) => setLogin(e.target.value)}
+              placeholder="admin_user"
               required
               disabled={loading}
             />
           </div>
-          
+
           <div className="form-group">
             <label>Пароль:</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="password123"
               required
               disabled={loading}
             />
