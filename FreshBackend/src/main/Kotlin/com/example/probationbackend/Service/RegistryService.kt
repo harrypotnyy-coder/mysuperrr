@@ -106,6 +106,56 @@ class RegistryService(
         return clientRepository.findAll() // TODO: Добавить метод в репозиторий для фильтрации
     }
 
+    fun updateClient(id: Long, request: RegistryCreateRequest, photoFile: MultipartFile? = null): Client {
+        val existingClient = clientRepository.findById(id).orElseThrow {
+            IllegalArgumentException("Client not found with id: $id")
+        }
+
+        // Обновляем данные клиента
+        var photoKey = existingClient.photoKey
+
+        // Если загружено новое фото, сохраняем его
+        if (photoFile != null && !photoFile.isEmpty) {
+            val photoFileName = existingClient.uniqueId ?: "client_${existingClient.id}"
+            photoKey = photoStorageService.storePhoto(photoFile, photoFileName, "reference_faces")
+        }
+
+        val updatedClient = existingClient.copy(
+            fio = request.fio,
+            inn = if (request.noInn != true) request.inn else null,
+            obsType = request.obsType,
+            birthDate = request.birthDate,
+            unit = request.unit ?: existingClient.unit,
+            photoKey = photoKey ?: existingClient.photoKey,
+            regAddress = request.regAddress,
+            factAddress = request.factAddress,
+            passport = request.passport,
+            contact1 = request.contact1,
+            contact2 = request.contact2,
+            article = request.article,
+            part = request.part,
+            point = request.point,
+            degree = request.degree,
+            measures = request.measures,
+            obsStart = request.obsStart,
+            obsEnd = request.obsEnd,
+            code = request.code,
+            udNumber = request.udNumber,
+            erpNumber = request.erpNumber,
+            sex = request.sex,
+            extraInfo = request.extraInfo
+        )
+
+        return clientRepository.save(updatedClient)
+    }
+
+    fun deleteClient(id: Long) {
+        val client = clientRepository.findById(id).orElseThrow {
+            IllegalArgumentException("Client not found with id: $id")
+        }
+        clientRepository.deleteById(id)
+    }
+
     // Вспомогательный метод для генерации идентификатора
     private fun generateIdentifier(): String {
         // Пример: "04-" + случайные цифры

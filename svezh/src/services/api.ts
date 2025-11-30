@@ -38,11 +38,18 @@ export const authAPI = {
 
 export const registryAPI = {
   getClients: () => api.get('/registry'),
-  
-  createClient: (clientData: FormData) => 
+
+  createClient: (clientData: FormData) =>
     api.post('/registry', clientData, {
       headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    }),
+
+  updateClient: (id: number, clientData: FormData) =>
+    api.put(`/registry/${id}`, clientData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+
+  deleteClient: (id: number) => api.delete(`/registry/${id}`)
 };
 
 export const devicesAPI = {
@@ -65,7 +72,19 @@ export const faceCheckAPI = {
     formData.append('userId', userId);
     formData.append('file', file);
     return api.post('/facecheck/verify', formData);
-  }
+  },
+
+  sendResult: (data: any) => api.post('/facecheck/result', data)
+};
+
+export const adminAPI = {
+  // Employee management
+  deleteEmployee: (id: number) => api.delete(`/admin/employees/${id}`),
+
+  updateEmployee: (id: number, data: any) => api.put(`/admin/employees/${id}`, data),
+
+  changeEmployeePassword: (id: number, newPassword: string) =>
+    api.put(`/admin/employees/${id}/password`, { newPassword })
 };
 
 // services/api.ts
