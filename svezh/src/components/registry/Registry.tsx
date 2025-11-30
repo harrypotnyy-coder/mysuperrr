@@ -53,20 +53,18 @@ const Registry: React.FC = () => {
   <div className="registry-page">
     <div className="page-header">
       <h1>Реестр клиентов</h1>
-      {isDeptAdmin && (
-        <button
-          onClick={() => {
-            setEditingClient(null);
-            setShowForm(true);
-          }}
-          className="add-client-btn"
-        >
-          Добавить клиента
-        </button>
-      )}
+      <button
+        onClick={() => {
+          setEditingClient(null);
+          setShowForm(true);
+        }}
+        className="add-client-btn"
+      >
+        Добавить клиента
+      </button>
     </div>
 
-      {showForm && isDeptAdmin && (
+      {showForm && (editingClient === null || isDeptAdmin) && (
         <ClientForm
           client={editingClient}
           onClose={() => {

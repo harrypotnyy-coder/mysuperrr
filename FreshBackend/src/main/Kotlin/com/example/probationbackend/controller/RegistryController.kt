@@ -21,20 +21,10 @@ class RegistryController(
 
     @PostMapping
     fun createClient(
-        @RequestHeader("Authorization") authHeader: String,
         @RequestPart("request") request: RegistryCreateRequest,
         @RequestPart("photo", required = false) photo: MultipartFile? // Фото как отдельная часть
     ): ResponseEntity<*> {
-        // Проверка прав доступа: только deptAdmin может создавать клиентов
-        val currentUser = getCurrentUser(authHeader)
-            ?: return ResponseEntity.status(401).body(mapOf("error" to "Unauthorized"))
-
-        if (!isDeptAdmin(currentUser)) {
-            return ResponseEntity.status(403).body(
-                mapOf("error" to "Доступ запрещён. Только Администратор департамента может добавлять клиентов.")
-            )
-        }
-
+        // Все авторизованные пользователи могут создавать клиентов (inspectors, mruAdmin, deptAdmin)
         return try {
             val client = registryService.createClient(request, photo)
             ResponseEntity.ok(client)
