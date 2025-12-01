@@ -62,15 +62,34 @@ class PhotoStorageService(
         val fileName = key // Предполагаем, что ключ уже содержит расширение
         val filePath = if (subDir != null) Paths.get(storageDir, subDir, fileName) else Paths.get(storageDir, fileName)
         println("DEBUG PhotoStorage: Loading photo from: ${filePath.toAbsolutePath()}")
+
         return try {
             val resource = org.springframework.core.io.UrlResource(filePath.toUri())
             if (resource.exists() && resource.isReadable) {
                 println("DEBUG PhotoStorage: Photo found and readable")
-                resource
-            } else {
-                println("ERROR PhotoStorage: Photo not found or not readable at ${filePath.toAbsolutePath()}")
-                null
+                return resource
             }
+
+            // Если файл не найден и ключ не содержит расширения, попробуем распространённые расширения
+            if (!key.contains(".")) {
+                println("DEBUG PhotoStorage: File not found, trying common extensions for key: $key")
+                val extensions = listOf("jpg", "jpeg", "png", "JPG", "JPEG", "PNG")
+
+                for (ext in extensions) {
+                    val fileNameWithExt = "$key.$ext"
+                    val pathWithExt = if (subDir != null) Paths.get(storageDir, subDir, fileNameWithExt) else Paths.get(storageDir, fileNameWithExt)
+                    println("DEBUG PhotoStorage: Trying: ${pathWithExt.toAbsolutePath()}")
+
+                    val resourceWithExt = org.springframework.core.io.UrlResource(pathWithExt.toUri())
+                    if (resourceWithExt.exists() && resourceWithExt.isReadable) {
+                        println("DEBUG PhotoStorage: Photo found with extension .$ext")
+                        return resourceWithExt
+                    }
+                }
+            }
+
+            println("ERROR PhotoStorage: Photo not found or not readable at ${filePath.toAbsolutePath()}")
+            null
         } catch (e: Exception) {
             println("ERROR PhotoStorage: Exception while loading photo: ${e.message}")
             e.printStackTrace()
