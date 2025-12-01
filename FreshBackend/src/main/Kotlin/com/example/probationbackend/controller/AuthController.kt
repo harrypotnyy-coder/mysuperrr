@@ -19,6 +19,18 @@ class AuthController(
     fun login(@RequestBody request: LoginRequest): ResponseEntity<*> {
         val user = authService.authenticate(request.login, request.password)
         return if (user != null) {
+            // ВАЖНО: Клиенты (осужденные) не должны иметь доступ к веб-интерфейсу
+            // Они должны использовать только мобильное приложение
+            if (user.userType == "probationer") {
+                println("✗ LOGIN BLOCKED: Client (probationer) ${user.inn} attempted to login to web interface")
+                return ResponseEntity.status(403).body<Map<String, String>>(
+                    mapOf(
+                        "message" to "Доступ запрещён. Клиенты могут использовать только мобильное приложение.",
+                        "error" to "PROBATIONER_WEB_ACCESS_DENIED"
+                    )
+                )
+            }
+
             val rbacAttributes = authService.getUserRbacAttributes(user)
             val userResponse = mapOf(
                 "id" to user.id,
@@ -29,6 +41,8 @@ class AuthController(
             )
 
             val token = jwtTokenProvider.generateToken(user)
+
+            println("✓ LOGIN SUCCESS: User ${user.inn} (${user.userType}) logged in to web interface")
 
             // Возврат токена и пользователя
             ResponseEntity.ok<Map<String, Any>>(mapOf("token" to token, "user" to userResponse))
@@ -57,6 +71,17 @@ class AuthController(
             // Находим пользователя в базе по ID
             val user = authService.findUserById(userId)
             if (user != null) {
+                // ВАЖНО: Блокируем клиентов (осужденных) от доступа к веб-интерфейсу
+                if (user.userType == "probationer") {
+                    println("✗ SESSION BLOCKED: Client (probationer) ${user.inn} attempted to access web interface")
+                    return ResponseEntity.status(403).body<Map<String, String>>(
+                        mapOf(
+                            "message" to "Доступ запрещён. Клиенты могут использовать только мобильное приложение.",
+                            "error" to "PROBATIONER_WEB_ACCESS_DENIED"
+                        )
+                    )
+                }
+
                 // Получаем RBAC атрибуты
                 val rbacAttributes = authService.getUserRbacAttributes(user)
                 val userResponse = mapOf(
