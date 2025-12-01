@@ -171,28 +171,47 @@ class RegistryService(
             IllegalArgumentException("Client not found with id: $id")
         }
 
-        // Удаляем пользователя из системы, если он существует
-        if (!client.inn.isNullOrBlank()) {
-            try {
-                authService.deleteUserByInn(client.inn)
-                println("User with INN ${client.inn} deleted successfully")
-            } catch (e: Exception) {
-                println("Warning: Failed to delete user for INN ${client.inn}: ${e.message}")
-            }
-        }
+        println("=== STARTING CLIENT DELETION ===")
+        println("Client ID: ${client.id}, INN: ${client.inn}, uniqueId: ${client.uniqueId}, FIO: ${client.fio}")
 
         // Удаляем устройство из Traccar, если есть uniqueId
         if (client.uniqueId != null) {
             try {
                 traccarService.deleteDeviceByUniqueId(client.uniqueId)
-                println("Traccar device ${client.uniqueId} deleted successfully")
+                println("✓ Traccar device ${client.uniqueId} deleted successfully")
             } catch (e: Exception) {
-                println("Warning: Failed to delete Traccar device ${client.uniqueId}: ${e.message}")
+                println("✗ Warning: Failed to delete Traccar device ${client.uniqueId}: ${e.message}")
             }
         }
 
-        // Удаляем клиента из БД
+        // Удаляем пользователя из таблицы users, если он там есть (для сотрудников)
+        // Клиенты (осужденные) авторизуются из таблицы clients, поэтому для них это не нужно
+        if (!client.inn.isNullOrBlank()) {
+            try {
+                authService.deleteUserByInn(client.inn)
+                println("✓ User account with INN ${client.inn} deleted from users table")
+            } catch (e: Exception) {
+                // Это нормально для клиентов - у них нет записи в users
+                println("ℹ No user account found in users table for INN ${client.inn} (expected for clients)")
+            }
+        }
+
+        // Удаляем клиента из БД - ЭТО ГЛАВНОЕ для блокировки доступа клиента
+        println("Deleting client from clients table...")
         clientRepository.deleteById(id)
+        clientRepository.flush() // Принудительно фиксируем изменения
+        println("✓ Client with ID ${client.id} and INN ${client.inn} DELETED from clients table")
+
+        // Проверяем, что клиент действительно удалён
+        val stillExists = clientRepository.findById(id).isPresent
+        if (stillExists) {
+            println("✗✗✗ ERROR: Client still exists in database after deletion!")
+            throw IllegalStateException("Failed to delete client from database")
+        } else {
+            println("✓✓✓ VERIFIED: Client no longer exists in database")
+        }
+
+        println("=== CLIENT DELETION COMPLETED ===")
     }
 
     // Вспомогательный метод для генерации идентификатора
