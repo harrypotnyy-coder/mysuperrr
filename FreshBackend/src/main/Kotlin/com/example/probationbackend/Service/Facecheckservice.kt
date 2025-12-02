@@ -7,6 +7,7 @@ import org.bytedeco.javacpp.FloatPointer
 import org.bytedeco.javacpp.IntPointer
 import org.bytedeco.opencv.global.opencv_imgcodecs.imread
 import org.bytedeco.opencv.global.opencv_imgproc.*
+import org.bytedeco.opencv.global.opencv_core.*
 import org.bytedeco.opencv.opencv_core.*
 import org.bytedeco.opencv.opencv_objdetect.CascadeClassifier
 import org.springframework.core.io.ClassPathResource
