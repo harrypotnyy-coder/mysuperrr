@@ -44,10 +44,12 @@ interface ClientWithPosition {
   obsStart?: string;
   obsEnd?: string;
   unit?: string;
-  article?: string;
-  part?: string;
-  point?: string;
-  code?: string;
+  articles?: Array<{
+    id?: number;
+    article?: string;
+    part?: string;
+    point?: string;
+  }>;
   photoKey?: string;
   status: string;
   position?: {
@@ -310,23 +312,32 @@ const RealMap: React.FC = () => {
                     </div>
 
                     <div className="info-section">
-                      <h4>⚖️ Уголовное дело</h4>
-                      <div className="info-row">
-                        <span className="label">Статья:</span>
-                        <span className="value">{client.article || 'Не указано'}</span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">Часть:</span>
-                        <span className="value">{client.part || 'Не указано'}</span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">Пункт:</span>
-                        <span className="value">{client.point || 'Не указано'}</span>
-                      </div>
-                      <div className="info-row">
-                        <span className="label">Код преступления:</span>
-                        <span className="value">{client.code || 'Не указано'}</span>
-                      </div>
+                      <h4>⚖️ Статья осуждения</h4>
+                      {client.articles && client.articles.length > 0 ? (
+                        client.articles.map((articleItem, index) => (
+                          <div key={index} style={{ marginBottom: '10px', paddingBottom: '10px', borderBottom: index < client.articles!.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                            <div style={{ fontWeight: 600, marginBottom: '5px', color: '#374151' }}>
+                              Статья {index + 1}
+                            </div>
+                            <div className="info-row">
+                              <span className="label">Статья:</span>
+                              <span className="value">{articleItem.article || 'Не указано'}</span>
+                            </div>
+                            <div className="info-row">
+                              <span className="label">Часть:</span>
+                              <span className="value">{articleItem.part || 'Не указано'}</span>
+                            </div>
+                            <div className="info-row">
+                              <span className="label">Пункт:</span>
+                              <span className="value">{articleItem.point || 'Не указано'}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="info-row">
+                          <span className="value">Не указано</span>
+                        </div>
+                      )}
                     </div>
 
                     {client.position && (
