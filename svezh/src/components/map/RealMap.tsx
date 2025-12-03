@@ -309,35 +309,25 @@ const RealMap: React.FC = () => {
                       </div>
                     </div>
 
-                    {(client.article || client.part || client.point || client.code) && (
-                      <div className="info-section">
-                        <h4>⚖️ Уголовное дело</h4>
-                        {client.article && (
-                          <div className="info-row">
-                            <span className="label">Статья:</span>
-                            <span className="value">{client.article}</span>
-                          </div>
-                        )}
-                        {client.part && (
-                          <div className="info-row">
-                            <span className="label">Часть:</span>
-                            <span className="value">{client.part}</span>
-                          </div>
-                        )}
-                        {client.point && (
-                          <div className="info-row">
-                            <span className="label">Пункт:</span>
-                            <span className="value">{client.point}</span>
-                          </div>
-                        )}
-                        {client.code && (
-                          <div className="info-row">
-                            <span className="label">Код:</span>
-                            <span className="value">{client.code}</span>
-                          </div>
-                        )}
+                    <div className="info-section">
+                      <h4>⚖️ Уголовное дело</h4>
+                      <div className="info-row">
+                        <span className="label">Статья:</span>
+                        <span className="value">{client.article || 'Не указано'}</span>
                       </div>
-                    )}
+                      <div className="info-row">
+                        <span className="label">Часть:</span>
+                        <span className="value">{client.part || 'Не указано'}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Пункт:</span>
+                        <span className="value">{client.point || 'Не указано'}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="label">Код преступления:</span>
+                        <span className="value">{client.code || 'Не указано'}</span>
+                      </div>
+                    </div>
 
                     {client.position && (
                       <div className="info-section">
