@@ -431,6 +431,121 @@ export const AdminPanel: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Модальное окно редактирования сотрудника */}
+      {editingEmployee && (
+        <div className="modal-overlay" onClick={() => setEditingEmployee(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Редактировать сотрудника</h2>
+            <div className="form-group">
+              <label>ИНН (логин)</label>
+              <input type="text" value={editingEmployee.inn} disabled style={{backgroundColor: '#f0f0f0'}} />
+            </div>
+            <div className="form-group">
+              <label>Unique ID</label>
+              <input type="text" value={editingEmployee.uniqueId} disabled style={{backgroundColor: '#f0f0f0'}} />
+            </div>
+            <div className="form-group">
+              <label>Роль</label>
+              <select
+                value={editingEmployee.attributes?.role || 'inspector'}
+                onChange={(e) => setEditingEmployee({
+                  ...editingEmployee,
+                  attributes: { ...editingEmployee.attributes, role: e.target.value }
+                })}
+              >
+                <option value="deptAdmin">Администратор департамента</option>
+                <option value="mruAdmin">Администратор МРУ</option>
+                <option value="inspector">Инспектор</option>
+              </select>
+            </div>
+            <div className="modal-actions">
+              <button
+                onClick={() => updateEmployee(editingEmployee.id, {
+                  role: editingEmployee.attributes?.role
+                })}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  marginRight: '10px'
+                }}
+              >
+                Сохранить
+              </button>
+              <button
+                onClick={() => setEditingEmployee(null)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модальное окно изменения пароля */}
+      {changingPassword && (
+        <div className="modal-overlay" onClick={() => setChangingPassword(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Изменить пароль</h2>
+            <div className="form-group">
+              <label>Новый пароль</label>
+              <input
+                type="password"
+                value={changingPassword.newPassword}
+                onChange={(e) => setChangingPassword({
+                  ...changingPassword,
+                  newPassword: e.target.value
+                })}
+                placeholder="Введите новый пароль"
+                autoFocus
+              />
+            </div>
+            <div className="modal-actions">
+              <button
+                onClick={() => {
+                  changePassword(changingPassword.employeeId, changingPassword.newPassword);
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#f59e0b',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  marginRight: '10px'
+                }}
+              >
+                Изменить пароль
+              </button>
+              <button
+                onClick={() => setChangingPassword(null)}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
